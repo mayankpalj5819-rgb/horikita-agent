@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>🌸 GHA Agent</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--b:#30363d;--t:#e6edf3;--t2:#8b949e;--a:#a78bfa;--a2:#8b5cf6;--g:#3fb950;--r:#f85149;--rd:8px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--t);height:100vh;overflow:hidden;font-size:14px}
+.app{display:flex;flex-direction:column;height:100vh}
+.hdr{padding:8px 16px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;background:var(--bg2)}
+.logo{font-weight:700;font-size:15px}.badge{font-size:11px;padding:3px 9px;border-radius:12px;background:var(--bg3);color:var(--t2)}
+.chat{flex:1;overflow-y:auto;padding:16px}.chat::-webkit-scrollbar{width:5px}.chat::-webkit-scrollbar-thumb{background:var(--b);border-radius:3px}
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center}
+.welcome h2{font-size:20px;margin-bottom:6px}.welcome p{color:var(--t2);max-width:360px;margin-bottom:16px;font-size:13px}
+.sugs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:500px}
+.sug{background:var(--bg2);border:1px solid var(--b);color:var(--t2);padding:6px 12px;border-radius:16px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .15s}
+.sug:hover{background:var(--bg3);color:var(--t);border-color:var(--a2)}
+.msgs{display:flex;flex-direction:column;gap:16px;max-width:740px;margin:0 auto;width:100%}
+.msg{display:flex;gap:8px;animation:fade .3s ease}@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{flex-direction:row-reverse}.av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.msg.user .av{background:var(--a2)}.msg.assistant .av{background:var(--bg3)}
+.bub{flex:1;min-width:0}.msg.user .b-inner{background:var(--a2);color:#fff;padding:8px 14px;border-radius:14px 14px 4px 14px;float:right;max-width:85%}
+.msg.assistant .b-inner{padding:0;line-height:1.6}.b-inner p{margin:6px 0}.b-inner pre{background:var(--bg2);border:1px solid var(--b);border-radius:var(--rd);padding:10px 14px;overflow-x:auto;margin:8px 0;font-size:13px}
+.b-inner code{background:rgba(255,255,255,.06);padding:1px 4px;border-radius:3px;font-size:13px}.b-inner pre code{background:none;padding:0}
+.inline-img{max-width:100%;border-radius:var(--rd);margin:8px 0;border:1px solid var(--b)}
+.input-area{padding:10px 16px 14px;border-top:1px solid var(--b);background:var(--bg2)}
+.iwrap{max-width:740px;margin:0 auto;display:flex;gap:8px;align-items:flex-end;background:var(--bg3);border:1px solid var(--b);border-radius:var(--rd);padding:8px 12px;transition:border-color .2s}
+.iwrap:focus-within{border-color:var(--a2)}
+.iwrap textarea{flex:1;background:none;border:none;color:var(--t);font-family:inherit;font-size:14px;line-height:1.5;resize:none;outline:none;padding:4px 0;max-height:140px;min-height:22px}
+.iwrap textarea::placeholder{color:var(--t2)}
+.sbtn{width:32px;height:32px;border-radius:50%;border:none;background:var(--a2);color:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.sbtn:hover{background:var(--a);transform:scale(1.05)}.sbtn:disabled{opacity:.4;transform:none}
+.sbtn.loading{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:640px){.chat{padding:12px}.input-area{padding:8px 12px 12px}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="hdr"><div class="logo">🌸 GHA Agent <span style="font-size:10px;color:var(--t2)">Playwright + Groq</span></div><div class="badge" id="st">Ready</div></div>
+<div class="chat" id="chat">
+<div class="welcome" id="wl">
+<h2>🌸 GHA Agent</h2>
+<p>Browser agent with live web search, screenshots, code execution. Running on GitHub Actions.</p>
+<div class="sugs">
+<button class="sug" onclick="qs(this)">🔍 Search latest AI news</button>
+<button class="sug" onclick="qs(this)">🌐 Open github.com and describe it</button>
+<button class="sug" onclick="qs(this)">🐍 Write Python to calculate pi to 100 digits</button>
+<button class="sug" onclick="qs(this)">📸 Screenshot news.ycombinator.com</button>
+</div>
+</div>
+<div class="msgs" id="msgs"></div>
+</div>
+<div class="input-area">
+<div class="iwrap">
+<textarea id="inp" rows="1" placeholder="Ask anything — I'll search, browse, code..." onkeydown="hk(event)" oninput="ar(this)"></textarea>
+<button class="sbtn" id="sb" onclick="send()">➤</button>
+</div>
+</div>
+</div>
+<script>
+marked.setOptions({breaks:true,gfm:true});let loading=false;
+
+function hw(){document.getElementById('wl').style.display='none'}
+function sb(){document.getElementById('chat').scrollTo({top:document.getElementById('chat').scrollHeight,behavior:'smooth'})}
+function ar(e){e.style.height='auto';e.style.height=Math.min(e.scrollHeight,140)+'px'}
+
+function am(role,txt){
+hw();let d=document.createElement('div');d.className='msg '+role;
+d.innerHTML=`<div class="av">${role==='user'?'👤':'🌸'}</div><div class="bub"><div class="b-inner"></div></div>`;
+document.getElementById('msgs').appendChild(d);
+if(txt)d.querySelector('.b-inner').innerHTML=md(txt);sb();return d}
+
+function md(t){if(!t)return'';t=t.replace(/(data:image\/[^"]+)/g,'<img src="$1" class="inline-img">');return marked.parse(t)}
+
+function hk(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}
+function qs(b){document.getElementById('inp').value=b.textContent;send()}
+
+async function send(){
+let i=document.getElementById('inp');let t=i.value.trim();if(!t||loading)return;
+i.value='';i.style.height='auto';hw();am('user',t);
+let a=am('assistant','⏳ Thinking...');loading=true;
+document.getElementById('sb').classList.add('loading');document.getElementById('sb').disabled=true;
+try{
+let r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})});
+let d=await r.json();
+a.querySelector('.b-inner').innerHTML=md(d.response);
+}catch(e){a.querySelector('.b-inner').innerHTML=md('❌ Error: '+e.message)}
+finally{loading=false;document.getElementById('sb').classList.remove('loading');document.getElementById('sb').disabled=false;sb()}
+}
+</script>
+</body>
+</html>

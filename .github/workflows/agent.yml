@@ -1,0 +1,36 @@
+name: GHA Agent (Playwright + Groq)
+on:
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: 'Hours to run (max 5.5)'
+        default: '1'
+        required: false
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      
+      - name: Install deps
+        run: |
+          pip install fastapi uvicorn httpx openai duckduckgo-search
+          pip install playwright
+          playwright install chromium
+          playwright install-deps chromium
+      
+      - name: Start Agent + Tunnel
+        env:
+          GROQ_KEY: ${{ secrets.GROQ_API_KEY }}
+          NVIDIA_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          DURATION: ${{ github.event.inputs.duration }}
+        run: |
+          python agent_server.py &
+          sleep 8
+          DURATION_SEC=$(( ${DURATION:-1} * 3600 ))
+          echo "Running for ${DURATION_SEC} seconds..."
+          sleep $DURATION_SEC
